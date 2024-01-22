@@ -1,0 +1,6 @@
+# Generated files
+slurm-monitor/target/
+
+# The library shouldn't decide about the exact versions of 
+# its dependencies, but let the downstream crate decide.
+slurm-monitor/Cargo.lock
