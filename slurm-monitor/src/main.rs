@@ -5,6 +5,7 @@ use crate::cli::{init, parse};
 use crate::slurm::{check_slurm, JobStats};
 
 use tabled::{Tabled, Table};
+use tabled::settings::Style;
 
 #[derive(Tabled)]
 struct JobStatsRow<'a> {
@@ -34,7 +35,7 @@ fn main() {
             let table = vec![
                 job_stats.to_table(&cli.name)
             ];
-            let table_str = Table::new(table).to_string();
+            let table_str = Table::new(table).with(Style::sharp()).to_string();
             println!("{}", table_str);
         }
         Err(error) => {
