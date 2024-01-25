@@ -2,7 +2,7 @@ mod cli;
 mod slurm;
 
 use crate::cli::{init, parse};
-use crate::slurm::{check_slurm, JobStats};
+use crate::slurm::{check_slurm, JobStats, JobInfo, JobState};
 
 use tabled::{Tabled, Table};
 use tabled::settings::Style;
@@ -24,6 +24,21 @@ impl JobStats {
     }
 }
 
+#[derive(Tabled)]
+struct JobInfoRow {
+    id: u64,
+    state: JobState
+}
+
+impl JobInfo {
+    fn to_table(&self) -> JobInfoRow {
+        JobInfoRow{
+            id: self.id,
+            state: self.state
+        }
+    }
+}
+
 fn main() {
     let args = init();
     let cli = parse(&args);
@@ -32,11 +47,19 @@ fn main() {
 
     match check_slurm(&cli.name){
         Ok(job_stats) => {
-            let table = vec![
+            let stats_table = vec![
                 job_stats.to_table(&cli.name)
             ];
-            let table_str = Table::new(table).with(Style::sharp()).to_string();
-            println!("{}", table_str);
+            let stats_str = Table::new(stats_table).with(Style::sharp()).to_string();
+            println!("{}", stats_str);
+
+            let mut jobs_table: Vec<JobInfoRow> = Vec::new();
+            for j in job_stats.jobs {
+                jobs_table.push(j.to_table());
+            }
+
+            let jobs_str = Table::new(jobs_table).with(Style::sharp()).to_string();
+            println!("{}", jobs_str);
         }
         Err(error) => {
             eprintln!("Error occurred: {}", error);
