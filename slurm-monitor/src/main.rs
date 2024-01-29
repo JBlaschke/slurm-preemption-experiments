@@ -25,16 +25,20 @@ impl JobStats {
 }
 
 #[derive(Tabled)]
-struct JobInfoRow {
+struct JobInfoRow<'a> {
     id: u64,
-    state: JobState
+    state: JobState,
+    n:u64,
+    nids: &'a str
 }
 
 impl JobInfo {
-    fn to_table(&self) -> JobInfoRow {
-        JobInfoRow{
+    fn to_table<'a>(&'a self) -> JobInfoRow {
+        JobInfoRow {
             id: self.id,
-            state: self.state
+            state: self.state,
+            n: self.n,
+            nids: &self.nids
         }
     }
 }
@@ -54,7 +58,7 @@ fn main() {
             println!("{}", stats_str);
 
             let mut jobs_table: Vec<JobInfoRow> = Vec::new();
-            for j in job_stats.jobs {
+            for j in &job_stats.jobs {
                 jobs_table.push(j.to_table());
             }
 

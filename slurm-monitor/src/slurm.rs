@@ -13,6 +13,8 @@ pub enum JobState {
 pub struct JobInfo {
     pub id: u64,
     pub state: JobState,
+    pub n: u64,
+    pub nids: String
 }
 
 pub struct JobStats {
@@ -40,11 +42,10 @@ impl fmt::Display for JobState {
     }
 }
 
-
 pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
     // Run `squeue` command to get job information
     let output = Command::new("squeue")
-        .args(&["--name", job_name, "--format=%A %T"])
+        .args(&["--name", job_name, "--format=%A %T %D %N"])
         .output()
         .expect("Failed to execute command");
 
@@ -86,9 +87,19 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
                 return Err(Error::new(ErrorKind::Other, "Failed to parse"))
             };
 
-            jobs.push(JobInfo{
+            let node_number_string = iter.next().unwrap_or_default().to_string();
+            let node_number:u64 = match node_number_string.parse() {
+                Ok(number) => {number},
+                Err(_) => {0}
+            };
+
+            let node_nids = iter.next().unwrap_or_default().to_string();
+
+            jobs.push(JobInfo {
                 id: job_id,
-                state: job_state
+                state: job_state,
+                n: node_number,
+                nids: node_nids.clone()
             });
         }
 
