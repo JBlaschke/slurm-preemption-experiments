@@ -7,23 +7,34 @@ use crate::slurm::{check_slurm, JobStats, JobInfo, JobState};
 use tabled::{Tabled, Table};
 use tabled::settings::Style;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use toml::Value;
 use std::fs;
 
 #[derive(Tabled)]
 struct JobStatsRow<'a> {
     name: &'a str,
+    nodes: u64,
     running: u64,
     waiting: u64
 }
 
 impl JobStats {
-    fn to_table<'a>(&'a self, name: &'a str) -> JobStatsRow {
+    fn to_table<'a>(&'a self, name: &'a str, nodes: &u64) -> JobStatsRow {
+        let running = match self.running.get(nodes) {
+            Some(value) => {value},
+            None => {&0}
+        };
+        let waiting = match self.waiting.get(nodes) {
+            Some(value) => {value},
+            None => {&0}
+        };
+
         JobStatsRow{
             name: name,
-            running: self.running,
-            waiting: self.waiting
+            nodes: *nodes,
+            running: *running,
+            waiting: *waiting
         }
     }
 }
@@ -82,6 +93,15 @@ fn interpret_number_vec(value: &Value) -> Vec<i64> {
     numbers
 }
 
+fn union_keys<'a, T: std::cmp::Eq + std::hash::Hash,W>(
+        a: &'a HashMap<T,W>, b: &'a HashMap<T,W>
+    ) -> HashSet<&'a T> {
+    let keys_a: HashSet<_> = a.keys().collect();
+    let keys_b: HashSet<_> = b.keys().collect();
+    let union_keys: HashSet<_> = keys_a.union(&keys_b).cloned().collect();
+    return union_keys;
+}
+
 fn main() {
     let args = init();
     let cli = parse(&args);
@@ -100,9 +120,12 @@ fn main() {
 
         match check_slurm(&name){
             Ok(job_stats) => {
-                let stats_table = vec![
-                    job_stats.to_table(&name)
-                ];
+                let mut stats_table: Vec<JobStatsRow> = Vec::new();
+                let all_keys = union_keys(&job_stats.running, &job_stats.waiting);
+                for &key in all_keys.iter() {
+                    stats_table.push(job_stats.to_table(&name, key));
+                }
+
                 let stats_str = Table::new(stats_table).with(Style::sharp()).to_string();
                 println!("{}", stats_str);
 

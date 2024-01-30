@@ -2,6 +2,7 @@ use std::process::Command;
 use std::io::{Error, ErrorKind};
 use std::fmt;
 
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 pub enum JobState {
@@ -18,19 +19,9 @@ pub struct JobInfo {
 }
 
 pub struct JobStats {
-    pub running: u64,
-    pub waiting: u64,
+    pub running: HashMap<u64, u64>,
+    pub waiting: HashMap<u64, u64>,
     pub jobs: Vec<JobInfo>
-}
-
-impl fmt::Display for JobStats {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "JobStats(running: {}, waiting: {})",
-            self.running, self.waiting
-        )
-    }
 }
 
 impl fmt::Display for JobState {
@@ -60,8 +51,8 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
         let lines: Vec<&str> = result.lines().collect();
 
         // Count running and waiting jobs
-        let mut running_count = 0;
-        let mut waiting_count = 0;
+        let mut running_map: HashMap<u64, u64> = HashMap::new();
+        let mut waiting_map: HashMap<u64, u64> = HashMap::new();
 
         for line in lines.iter().skip(1) { // skip first (header) line of squeue
             let mut iter = line.split_whitespace();
@@ -77,15 +68,6 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
 
             // Parse Job State
             let job_state_string = iter.next().unwrap_or_default().to_string();
-            let job_state = if job_state_string == "RUNNING" {
-                running_count += 1;
-                JobState::Running
-            } else if job_state_string == "PENDING" {
-                waiting_count += 1;
-                JobState::Pending
-            } else {
-                return Err(Error::new(ErrorKind::Other, "Failed to parse"))
-            };
 
             let node_number_string = iter.next().unwrap_or_default().to_string();
             let node_number:u64 = match node_number_string.parse() {
@@ -94,6 +76,18 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
             };
 
             let node_nids = iter.next().unwrap_or_default().to_string();
+
+            let job_state = if job_state_string == "RUNNING" {
+                let running_count = running_map.entry(node_number).or_insert(0);
+                *running_count += 1;
+                JobState::Running
+            } else if job_state_string == "PENDING" {
+                let waiting_count = waiting_map.entry(node_number).or_insert(0);
+                *waiting_count += 1;
+                JobState::Pending
+            } else {
+                return Err(Error::new(ErrorKind::Other, "Failed to parse"))
+            };
 
             jobs.push(JobInfo {
                 id: job_id,
@@ -104,8 +98,8 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
         }
 
         return Ok(JobStats{
-            running: running_count,
-            waiting: waiting_count,
+            running: running_map,
+            waiting: waiting_map,
             jobs: jobs
         })
     }
