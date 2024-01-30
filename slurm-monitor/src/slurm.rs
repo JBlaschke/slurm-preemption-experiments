@@ -1,6 +1,7 @@
-use std::process::Command;
-use std::io::{Error, ErrorKind};
-use std::fmt;
+use std::process::{Command, ExitStatus};
+use std::io::{Write, Error, ErrorKind};
+use std::fs::File;
+use std::{fmt, env};
 
 use std::collections::HashMap;
 
@@ -62,6 +63,7 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
             let job_id = match job_id_string.parse::<u64>() {
                 Ok(job_id) => {job_id}
                 Err(_) => {
+                    // TODO: better errors
                     return Err(Error::new(ErrorKind::Other, "Failed to parse"))
                 }
             };
@@ -86,6 +88,7 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
                 *waiting_count += 1;
                 JobState::Pending
             } else {
+                // TODO: better errors
                 return Err(Error::new(ErrorKind::Other, "Failed to parse"))
             };
 
@@ -106,4 +109,62 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
     return Err(
         Error::new(ErrorKind::Other, String::from_utf8_lossy(&output.stderr))
     )
+}
+
+pub fn start_job(
+        nodes: u64, account_name: &str, node_type: &str, qos_name: &str,
+        walltime: &str, signal: &str, job_name: &str, reservation_name: &str,
+        path: &str, app: &str
+    ) -> ExitStatus {
+
+    let current_dir = env::current_dir()
+        .expect("Failed to get current working directory");
+
+    env::set_current_dir(path)
+        .expect(&format!("Failed to set working directory to {}", path));
+
+    let script_file_name = "preemptible.sh";
+
+    // Create the job script file
+    let mut script_file = File::create(script_file_name)
+        .expect("Failed to create job script file");
+
+    // Write the job script content to the file with variable substitution
+    write!(
+        script_file,
+        "#!/bin/bash\n\
+        \n\
+        #SBATCH -N {}\n\
+        #SBATCH -A {}\n\
+        #SBATCH -C {}\n\
+        #SBATCH -q {}\n\
+        #SBATCH -t {}\n\
+        #SBATCH --signal={}\n\
+        #SBATCH --job-name={}\n\
+        #SBATCH --reservation={}\n\
+        \n\
+        srun -n 1 {}\n",
+        nodes, account_name, node_type, qos_name, walltime, signal, job_name,
+        reservation_name, app
+    )
+    .expect("Failed to write to job script file");
+
+    // Close the file after writing
+    script_file.flush().unwrap();
+
+    // Submit the job using sbatch command
+    let output = Command::new("sbatch")
+        .arg(script_file_name)
+        .output()
+        .expect("Failed to execute command");
+
+    env::set_current_dir(current_dir.clone())
+        .expect(
+            &format!(
+                "Failed to reset working directory to {}",
+                current_dir.display()
+            )
+        );
+
+    return output.status;
 }

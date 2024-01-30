@@ -11,6 +11,9 @@ use std::collections::{HashMap, HashSet};
 use toml::Value;
 use std::fs;
 
+use std::thread;
+use std::time::Duration;
+
 #[derive(Tabled)]
 struct JobStatsRow<'a> {
     name: &'a str,
@@ -71,6 +74,13 @@ fn interpret_string(value: &Value) -> String {
     match value {
         Value::String(s) => s.clone(), // For strings, just clone the value
         _ => value.to_string(), // For other types, use the default to_string method
+    }
+}
+
+fn interpret_i64(value: &Value) -> i64 {
+    match value {
+        Value::Integer(i) => *i,
+        _ => 0 // Default to 0 -- TODO: use options here
     }
 }
 
@@ -141,6 +151,10 @@ fn main() {
                 eprintln!("Error occurred: {}", error);
             }
         }
+
+        thread::sleep(Duration::from_secs(
+                interpret_i64(&settings["sleep"]).try_into().unwrap()
+        ));
     }
 }
 

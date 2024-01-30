@@ -1,0 +1,12 @@
+name = "rlx"
+signal = "R:INT@60"
+nodes = [1, 2, 4]
+
+app = "path/to/app"
+account_name = "nstaff"
+node_type = "cpu"
+qos_name = "regular"
+walltime = "1:00:00"
+reservation_name = "pod_preempt_2"
+
+sleep = 10
