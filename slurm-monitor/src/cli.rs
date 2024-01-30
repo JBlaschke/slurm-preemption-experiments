@@ -6,10 +6,10 @@ pub fn init() -> ArgMatches {
         .author("Johannes Blaschke")
         .about("Monitors Slurm for certain jobs")
         .arg(
-            Arg::new("name")
-            .long("name")
-            .help("Name of the job to check for")
-            .value_name("NAME")
+            Arg::new("settings")
+            .long("settings")
+            .help("Location of settings file")
+            .value_name("SETTINGS")
             .required(true)
         )
         .get_matches();
@@ -18,12 +18,12 @@ pub fn init() -> ArgMatches {
 }
 
 pub struct CLI<'a> {
-    pub name: &'a str
+    pub settings: &'a str
 }
 
 pub fn parse<'a>(args: &'a ArgMatches) -> CLI<'a> {
-    let name = args.get_one::<String>("name").unwrap().as_str();
+    let settings = args.get_one::<String>("settings").unwrap().as_str();
     CLI {
-        name: name
+        settings: settings
     }
 }
