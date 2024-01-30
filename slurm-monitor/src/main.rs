@@ -2,7 +2,9 @@ mod cli;
 mod slurm;
 
 use crate::cli::{init, parse};
-use crate::slurm::{check_slurm, start_job, JobStats, JobInfo, JobState};
+use crate::slurm::{
+    check_slurm, start_job, stop_job, JobStats, JobInfo, JobState
+};
 
 use tabled::{Tabled, Table};
 use tabled::settings::Style;
@@ -16,8 +18,6 @@ use std::time::Duration;
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-
-use std::path::PathBuf;
 
 #[derive(Tabled)]
 struct JobStatsRow<'a> {
@@ -169,6 +169,15 @@ fn main() {
 
                 let jobs_str = Table::new(jobs_table).with(Style::sharp()).to_string();
                 println!("{}", jobs_str);
+
+                if cli.drain {
+                    println!("Draining all jobs!");
+                    for job in job_stats.jobs {
+                        println!("Cancelling: {}", job.id);
+                        stop_job(job.id);
+                    }
+                    break;
+                };
 
                 let combined_iter = nodes
                     .clone()

@@ -111,6 +111,14 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
     )
 }
 
+pub fn stop_job(id: u64) -> ExitStatus {
+    let output = Command::new("scancel")
+        .args(&[id.to_string()])
+        .output()
+        .expect("Failed to execute command");
+    return output.status;
+}
+
 pub fn start_job(
         nodes: u64, account_name: &str, node_type: &str, qos_name: &str,
         walltime: &str, signal: &str, job_name: &str, reservation_name: &str,
