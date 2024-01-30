@@ -1,6 +1,7 @@
 name = "rlx"
 signal = "R:INT@60"
-nodes = [1, 2, 4]
+nodes = [1, 2, 4, 8]
+targets = [128, 64, 32, 16]
 
 app = "path/to/app"
 account_name = "nstaff"

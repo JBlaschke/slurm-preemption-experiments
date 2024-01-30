@@ -2,7 +2,7 @@ mod cli;
 mod slurm;
 
 use crate::cli::{init, parse};
-use crate::slurm::{check_slurm, JobStats, JobInfo, JobState};
+use crate::slurm::{check_slurm, start_job, JobStats, JobInfo, JobState};
 
 use tabled::{Tabled, Table};
 use tabled::settings::Style;
@@ -124,6 +124,7 @@ fn main() {
 
     let name = interpret_string(&settings["name"]);
     let nodes = interpret_number_vec(&settings["nodes"]);
+    let targets = interpret_number_vec(&settings["targets"]);
 
     loop {
         println!("Checking slurm job stats for name={}:", name);
@@ -146,6 +147,21 @@ fn main() {
 
                 let jobs_str = Table::new(jobs_table).with(Style::sharp()).to_string();
                 println!("{}", jobs_str);
+
+                for n in nodes.clone().into_iter() {
+                    let key = n.try_into().unwrap();
+                    let running: u64 = match job_stats.running.get(&key) {
+                        Some(v) => *v,
+                        None => 0
+                    };
+
+                    let waiting: u64 = match job_stats.waiting.get(&key) {
+                        Some(v) => *v,
+                        None => 0
+                    };
+                    println!("Running + waiting = {}", running+waiting);
+                }
+
             }
             Err(error) => {
                 eprintln!("Error occurred: {}", error);
