@@ -14,6 +14,11 @@ use std::fs;
 use std::thread;
 use std::time::Duration;
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
+use std::path::PathBuf;
+
 #[derive(Tabled)]
 struct JobStatsRow<'a> {
     name: &'a str,
@@ -103,6 +108,15 @@ fn interpret_number_vec(value: &Value) -> Vec<i64> {
     numbers
 }
 
+fn generate_random_string(length: usize) -> String {
+    let rng = thread_rng();
+    let random_string: String = rng.sample_iter(&Alphanumeric)
+        .take(length)
+        .map(char::from)
+        .collect();
+    random_string
+}
+
 fn union_keys<'a, T: std::cmp::Eq + std::hash::Hash,W>(
         a: &'a HashMap<T,W>, b: &'a HashMap<T,W>
     ) -> HashSet<&'a T> {
@@ -126,6 +140,14 @@ fn main() {
     let nodes = interpret_number_vec(&settings["nodes"]);
     let targets = interpret_number_vec(&settings["targets"]);
 
+    let account_name = interpret_string(&settings["account_name"]);
+    let node_type = interpret_string(&settings["node_type"]);
+    let qos_name = interpret_string(&settings["qos_name"]);
+    let walltime = interpret_string(&settings["walltime"]);
+    let signal = interpret_string(&settings["signal"]);
+    let reservation_name = interpret_string(&settings["reservation_name"]);
+    let app = interpret_string(&settings["app"]);
+
     loop {
         println!("Checking slurm job stats for name={}:", name);
 
@@ -148,18 +170,38 @@ fn main() {
                 let jobs_str = Table::new(jobs_table).with(Style::sharp()).to_string();
                 println!("{}", jobs_str);
 
-                for n in nodes.clone().into_iter() {
-                    let key = n.try_into().unwrap();
-                    let running: u64 = match job_stats.running.get(&key) {
+                let combined_iter = nodes
+                    .clone()
+                    .into_iter()
+                    .zip(targets.clone().into_iter());
+                for (n, t) in combined_iter {
+                    let nnode = n.try_into().unwrap();
+                    let target = t.try_into().unwrap();
+                    let running: u64 = match job_stats.running.get(&nnode) {
                         Some(v) => *v,
                         None => 0
                     };
 
-                    let waiting: u64 = match job_stats.waiting.get(&key) {
+                    let waiting: u64 = match job_stats.waiting.get(&nnode) {
                         Some(v) => *v,
                         None => 0
                     };
-                    println!("Running + waiting = {}", running+waiting);
+
+                    let total = running + waiting;
+                    if total < target {
+                        let rand_dir = generate_random_string(16);
+                        println!("Submitting job in: {}", rand_dir);
+                        match fs::create_dir(rand_dir.clone()){
+                            Err(_) => eprintln!("Failed to create: {}", rand_dir),
+                            _ => {
+                                start_job(
+                                    nnode, &account_name, &node_type, &qos_name,
+                                    &walltime, &signal, &name, &reservation_name,
+                                    &rand_dir, &app
+                                );
+                            }
+                        }
+                    }
                 }
 
             }

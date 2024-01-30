@@ -1,9 +1,9 @@
-name = "rlx"
+name = "patient_app"
 signal = "R:INT@60"
-nodes = [1, 2, 4, 8]
-targets = [128, 64, 32, 16]
+nodes = [1]
+targets = [128]
 
-app = "path/to/app"
+app = "~/slurm-preemption-experiments/jobs/patient_app"
 account_name = "nstaff"
 node_type = "cpu"
 qos_name = "regular"
