@@ -9,7 +9,8 @@ use std::collections::HashMap;
 pub enum JobState {
     Running,
     Pending,
-    Completing
+    Completing,
+    Other
 }
 
 #[derive(Debug)]
@@ -31,7 +32,8 @@ impl fmt::Display for JobState {
         match self {
             JobState::Running => write!(f, "Running"),
             JobState::Pending => write!(f, "Pending"),
-            JobState::Completing => write!(f, "Completing")
+            JobState::Completing => write!(f, "Completing"),
+            JobState::Other => write!(f, "Other")
         }
     }
 }
@@ -94,8 +96,7 @@ pub fn check_slurm(job_name: &str) -> Result<JobStats, Error> {
                 *running_count += 1;
                 JobState::Completing
             } else {
-                // TODO: better errors
-                return Err(Error::new(ErrorKind::Other, "Failed to parse"))
+                JobState::Other
             };
 
             jobs.push(JobInfo {
