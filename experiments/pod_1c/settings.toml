@@ -1,0 +1,13 @@
+name = "patient_app"
+signal = "R:INT@60"
+nodes =   [1,  2,  4, 8, 16]
+targets = [32, 16, 8, 4, 2]
+
+app = "~/slurm-preemption-experiments/jobs/patient_app"
+account_name = "nstaff"
+node_type = "cpu"
+qos_name = "regular"
+walltime = "1:00:00"
+reservation_name = "pod_preempt_4"
+
+sleep = 2
