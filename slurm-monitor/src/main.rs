@@ -3,7 +3,8 @@ mod slurm;
 
 use crate::cli::{init, parse};
 use crate::slurm::{
-    check_slurm, start_job, stop_job, JobStats, JobInfo, JobState
+    check_slurm, start_job_reservation, start_job_nodelist, stop_job,
+    JobStats, JobInfo, JobState
 };
 
 use tabled::{Tabled, Table};
@@ -148,6 +149,11 @@ fn main() {
     let reservation_name = interpret_string(&settings["reservation_name"]);
     let app = interpret_string(&settings["app"]);
 
+    let use_reservation = match cli.nodelist {
+        Some(_) => false,
+        None => true,
+    };
+
     loop {
         println!("Checking slurm job stats for name={}:", name);
 
@@ -203,11 +209,22 @@ fn main() {
                         match fs::create_dir(rand_dir.clone()){
                             Err(_) => eprintln!("Failed to create: {}", rand_dir),
                             _ => {
-                                start_job(
-                                    nnode, &account_name, &node_type, &qos_name,
-                                    &walltime, &signal, &name, &reservation_name,
-                                    &rand_dir, &app
-                                );
+                                if use_reservation {
+                                    println!("Using reservation: {}", reservation_name);
+                                    start_job_reservation(
+                                        nnode, &account_name, &node_type,
+                                        &qos_name, &walltime, &signal, &name,
+                                        &reservation_name, &rand_dir, &app
+                                    );
+                                } else {
+                                    let nodelist = cli.nodelist.unwrap();
+                                    println!("Using nodelist: {}", nodelist);
+                                    start_job_nodelist(
+                                        nnode, &account_name, &node_type,
+                                        &qos_name, &walltime, &signal, &name, 
+                                        &nodelist, &rand_dir, &app
+                                    );
+                                }
                             }
                         }
                     }

@@ -126,7 +126,7 @@ pub fn stop_job(id: u64) -> ExitStatus {
     return output.status;
 }
 
-pub fn start_job(
+pub fn start_job_reservation(
         nodes: u64, account_name: &str, node_type: &str, qos_name: &str,
         walltime: &str, signal: &str, job_name: &str, reservation_name: &str,
         path: &str, app: &str
@@ -161,6 +161,64 @@ pub fn start_job(
         srun -n 1 {}\n",
         nodes, account_name, node_type, qos_name, walltime, signal, job_name,
         reservation_name, app
+    )
+    .expect("Failed to write to job script file");
+
+    // Close the file after writing
+    script_file.flush().unwrap();
+
+    // Submit the job using sbatch command
+    let output = Command::new("sbatch")
+        .arg(script_file_name)
+        .output()
+        .expect("Failed to execute command");
+
+    env::set_current_dir(current_dir.clone())
+        .expect(
+            &format!(
+                "Failed to reset working directory to {}",
+                current_dir.display()
+            )
+        );
+
+    return output.status;
+}
+
+pub fn start_job_nodelist(
+        nodes: u64, account_name: &str, node_type: &str, qos_name: &str,
+        walltime: &str, signal: &str, job_name: &str, nodelist: &str,
+        path: &str, app: &str
+    ) -> ExitStatus {
+
+    let current_dir = env::current_dir()
+        .expect("Failed to get current working directory");
+
+    env::set_current_dir(path)
+        .expect(&format!("Failed to set working directory to {}", path));
+
+    let script_file_name = "preemptible.sh";
+
+    // Create the job script file
+    let mut script_file = File::create(script_file_name)
+        .expect("Failed to create job script file");
+
+    // Write the job script content to the file with variable substitution
+    write!(
+        script_file,
+        "#!/bin/bash\n\
+        \n\
+        #SBATCH -N {}\n\
+        #SBATCH -A {}\n\
+        #SBATCH -C {}\n\
+        #SBATCH -q {}\n\
+        #SBATCH -t {}\n\
+        #SBATCH --signal={}\n\
+        #SBATCH --job-name={}\n\
+        #SBATCH --nodelist={}\n\
+        \n\
+        srun -n 1 {}\n",
+        nodes, account_name, node_type, qos_name, walltime, signal, job_name,
+        nodelist, app
     )
     .expect("Failed to write to job script file");
 
