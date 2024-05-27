@@ -1,0 +1,11 @@
+[deps]
+Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
+CodecXz = "ba30903b-d9e8-5048-a5ec-d1f5b0d4b47b"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+ResultTypes = "08a2b407-ddc3-586a-afd6-c784ad1fffe2"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
+TranscodingStreams = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
